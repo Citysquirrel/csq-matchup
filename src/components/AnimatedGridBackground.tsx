@@ -46,7 +46,6 @@ export default function AnimatedGridBackground({
 		const wrapper = wrapperRef.current;
 		const canvas = canvasRef.current;
 
-		// 💡 3. 'canvas' 또는 'wrapper'가 null일 수 있는 상황을 조기에 차단 (Early Return)
 		if (!wrapper || !canvas) return;
 
 		const ctx = canvas.getContext("2d");

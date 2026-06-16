@@ -53,12 +53,13 @@ export default function App() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [page, setPage] = useState(1);
 
-	const [isTutorialActive, setIsTutorialActive] = useState<boolean>(() => {
-		const saved = localStorage.getItem("csq-matchup_tutorial");
+	const [isGuideActive, setIsGuideActive] = useState<boolean>(() => {
+		const saved = localStorage.getItem("csq-matchup_guide");
 		return saved ? JSON.parse(saved) : true;
 	});
 	const [guideStep, setGuideStep] = useState(0);
 
+	// 실시간 로컬스토리지 갱신 작업
 	useEffect(() => {
 		localStorage.setItem("csq-matchup_allies", JSON.stringify(allies));
 	}, [allies]);
@@ -69,8 +70,8 @@ export default function App() {
 		localStorage.setItem("csq-matchup_presets", JSON.stringify(presets));
 	}, [presets]);
 	useEffect(() => {
-		localStorage.setItem("csq-matchup_tutorial", JSON.stringify(isTutorialActive));
-	}, [isTutorialActive]);
+		localStorage.setItem("csq-matchup_guide", JSON.stringify(isGuideActive));
+	}, [isGuideActive]);
 	useEffect(() => {
 		localStorage.setItem("csq-matchup_allyIdx", JSON.stringify(allyIdx));
 	}, [allyIdx]);
@@ -80,7 +81,9 @@ export default function App() {
 
 	const activeAlly = allies[allyIdx];
 	const activeEnemy = enemies[enemyIdx];
-	const tutorialSteps: GuideStep[] = [
+
+	// 가이드 스템 객체
+	const guideSteps: GuideStep[] = [
 		{
 			text: "포켓몬 상성 돋보기의 간단한 튜토리얼을 시작합니다. 설명이 필요없을 경우 우상단의 'X' 버튼을, '다음' 버튼을 눌러 다음 스텝으로 넘어갑니다.",
 		},
@@ -319,9 +322,8 @@ export default function App() {
 
 	const getImageUrl = (pokemon: Pokemon) => {
 		return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
-		return pokemon.eng_name
-			? `https://play.pokemonshowdown.com/sprites/dex/${pokemon.eng_name}.png`
-			: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
+		//
+		// `https://play.pokemonshowdown.com/sprites/dex/${pokemon.eng_name}.png`
 	};
 
 	const createWeakTypeIconList = (weakTypes: string[], color: string, text: string) => {
@@ -380,7 +382,7 @@ export default function App() {
 							id="goto-ally-setup-button"
 							onClick={() => {
 								setView("party");
-								if (isTutorialActive && guideStep === 13) setGuideStep(14);
+								if (isGuideActive && guideStep === 13) setGuideStep(14);
 							}}
 							style={{
 								background: "#2563eb",
@@ -416,7 +418,7 @@ export default function App() {
 						id="help-button"
 						onClick={() => {
 							setView("battle");
-							setIsTutorialActive(true);
+							setIsGuideActive(true);
 						}}
 						tabIndex={-1}
 					>
@@ -440,7 +442,7 @@ export default function App() {
 									onClick={() => {
 										if (!enemy) setSearchConfig({ open: true, target: "enemy" });
 										setEnemyIdx(idx);
-										if (isTutorialActive && guideStep === 9 && !enemy) {
+										if (isGuideActive && guideStep === 9 && !enemy) {
 											setGuideStep(10);
 											setSearchQuery("갸라도스");
 											setPage(1);
@@ -699,10 +701,10 @@ export default function App() {
 											// activeAlly가 없을 때는 클릭 이벤트를 무시합니다.
 											if (!activeAlly) return;
 
-											if (isTutorialActive && guideStep === 8) return setGuideStep(9);
-											if (isTutorialActive && guideStep === 12) return;
+											if (isGuideActive && guideStep === 8) return setGuideStep(9);
+											if (isGuideActive && guideStep === 12) return;
 											setSearchConfig({ open: true, target: "move", moveSlotIdx: i });
-											if (isTutorialActive) {
+											if (isGuideActive) {
 												if (guideStep === 5) setGuideStep(6);
 											}
 										}}
@@ -773,7 +775,7 @@ export default function App() {
 										onClick={() => {
 											setAllyIdx(idx);
 											if (!ally) setSearchConfig({ open: true, target: "ally" });
-											if (isTutorialActive && !ally && guideStep === 1) setGuideStep(2);
+											if (isGuideActive && !ally && guideStep === 1) setGuideStep(2);
 										}}
 										style={{ gridTemplateRows: ally ? "auto 1fr 14px" : "auto" }}
 									>
@@ -1048,7 +1050,7 @@ export default function App() {
 								onChange={(e) => {
 									setSearchQuery(e.target.value);
 									setPage(1);
-									if (isTutorialActive) {
+									if (isGuideActive) {
 										if (guideStep === 2 && e.target.value.replace(/\s+/g, "") === "피카츄") setGuideStep(3);
 										if (guideStep === 6 && e.target.value.replace(/\s+/g, "") === "10만볼트") setGuideStep(7);
 									}
@@ -1110,7 +1112,7 @@ export default function App() {
 									className="search-item"
 									onClick={() => {
 										handleSelect(item);
-										if (isTutorialActive) {
+										if (isGuideActive) {
 											if (guideStep === 3) return setGuideStep(4);
 											if (guideStep === 7) return setGuideStep(8);
 											if (guideStep === 10) return setGuideStep(11);
@@ -1189,13 +1191,15 @@ export default function App() {
 					</div>
 				</div>
 			)}
+
+			{/*  */}
 			<Spotlight
-				isActive={isTutorialActive}
-				steps={tutorialSteps}
+				isActive={isGuideActive}
+				steps={guideSteps}
 				currentStep={guideStep}
 				onStepChange={setGuideStep}
 				onClose={() => {
-					setIsTutorialActive(false);
+					setIsGuideActive(false);
 				}}
 			/>
 		</div>
