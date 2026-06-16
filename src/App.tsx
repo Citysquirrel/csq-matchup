@@ -1024,7 +1024,7 @@ export default function App() {
 
 						{/* 소스코드 링크 */}
 						<div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
-							<a className="github-link" href="https://github.com/Citysquirrel/csq-matchup">
+							<a className="github-link" href="https://github.com/Citysquirrel/csq-matchup" target="_blank">
 								<div className="github-icon" />
 								<span style={{ fontSize: "12px" }}>source</span>
 							</a>
