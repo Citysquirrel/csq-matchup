@@ -284,6 +284,39 @@ body {
 	cursor: pointer;
 }
 
+.github-link {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 4px;
+	text-decoration: none;
+	color: white;
+}
+
+.github-link:hover {
+	color: rgb(154, 181, 255);
+}
+
+.github-link:hover > .github-icon {
+	background-color: rgb(154, 181, 255);
+}
+
+.github-icon {
+	width: 16px;
+	height: 16px;
+	background-color: rgb(255, 255, 255);
+
+	mask-image: url("/icons/github.svg");
+	mask-size: contain;
+	mask-position: center;
+	mask-repeat: no-repeat;
+
+	-webkit-mask-image: url("/icons/github.svg");
+	-webkit-mask-size: contain;
+	-webkit-mask-position: center;
+	-webkit-mask-repeat: no-repeat;
+}
+
 #help-button:hover {
 	background-color: #605c5c66;
 }

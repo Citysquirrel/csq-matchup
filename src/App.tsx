@@ -429,7 +429,7 @@ export default function App() {
 
 			<div
 				className={`slider-container ${view === "battle" ? "screen-battle" : "screen-party"}`}
-				style={{ height: "calc(100% - 46px)" }}
+				style={{ height: "calc(100% - 46px)", maxHeight: "calc(100% - 46px)", overflow: "hidden" }}
 			>
 				{/* ======================= [화면 1] 배틀 메인 ======================= */}
 				<div className="screen">
@@ -875,7 +875,8 @@ export default function App() {
 
 				{/* ======================= [화면 2] 파티 프리셋 ======================= */}
 				<div className="screen" style={{ background: "#1f2937" }}>
-					<div style={{ padding: "20px" }}>
+					<div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "20px 20px 12px 20px" }}>
+						{/* 프리셋 헤더 */}
 						<div
 							style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}
 						>
@@ -899,13 +900,15 @@ export default function App() {
 							</button>
 						</div>
 
+						{/* 프리셋 리스트 */}
 						<div
 							style={{
 								display: "flex",
+								flex: 1,
 								flexDirection: "column",
 								gap: "10px",
 								overflow: "auto",
-								maxHeight: "654px",
+								// maxHeight: "600px",
 								paddingRight: "2px",
 							}}
 						>
@@ -1017,6 +1020,14 @@ export default function App() {
 									</div>
 								</div>
 							))}
+						</div>
+
+						{/* 소스코드 링크 */}
+						<div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
+							<a className="github-link" href="https://github.com/Citysquirrel/csq-matchup">
+								<div className="github-icon" />
+								<span style={{ fontSize: "12px" }}>source</span>
+							</a>
 						</div>
 					</div>
 				</div>
