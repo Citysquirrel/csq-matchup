@@ -185,6 +185,7 @@ body {
 	color: white;
 	font-size: 9px;
 	font-weight: bold;
+	z-index: 7;
 }
 
 .type-circle > img {
@@ -203,7 +204,6 @@ body {
 	align-items: center;
 	justify-content: center;
 	position: relative;
-	cursor: pointer;
 	transition: background 0.1s;
 }
 .move-btn:hover {

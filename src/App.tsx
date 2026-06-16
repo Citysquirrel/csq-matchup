@@ -13,6 +13,7 @@ import {
 } from "./utils";
 import Tooltip from "./components/Tooltip";
 import Spotlight, { GuideStep } from "./components/Spotlight";
+import AnimatedGridBackground from "./components/AnimatedGridBackground";
 
 const dbPokemons = POKEMON_DATA as Pokemon[];
 const dbMoves = MOVES_DATA as Move[];
@@ -35,8 +36,14 @@ export default function App() {
 		return saved ? JSON.parse(saved) : [];
 	});
 
-	const [allyIdx, setAllyIdx] = useState(0);
-	const [enemyIdx, setEnemyIdx] = useState(0);
+	const [allyIdx, setAllyIdx] = useState(() => {
+		const saved = localStorage.getItem("csq-matchup_allyIdx");
+		return saved ? JSON.parse(saved) : 0;
+	});
+	const [enemyIdx, setEnemyIdx] = useState(() => {
+		const saved = localStorage.getItem("csq-matchup_enemyIdx");
+		return saved ? JSON.parse(saved) : 0;
+	});
 
 	const [searchConfig, setSearchConfig] = useState<{
 		open: boolean;
@@ -64,6 +71,12 @@ export default function App() {
 	useEffect(() => {
 		localStorage.setItem("csq-matchup_tutorial", JSON.stringify(isTutorialActive));
 	}, [isTutorialActive]);
+	useEffect(() => {
+		localStorage.setItem("csq-matchup_allyIdx", JSON.stringify(allyIdx));
+	}, [allyIdx]);
+	useEffect(() => {
+		localStorage.setItem("csq-matchup_enemyIdx", JSON.stringify(enemyIdx));
+	}, [enemyIdx]);
 
 	const activeAlly = allies[allyIdx];
 	const activeEnemy = enemies[enemyIdx];
@@ -311,6 +324,33 @@ export default function App() {
 			: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
 	};
 
+	const createWeakTypeIconList = (weakTypes: string[], color: string, text: string) => {
+		const len = weakTypes.length;
+		const render: string[][] = Array.from({ length: Math.ceil(weakTypes.length / 6) }, (_, i) =>
+			weakTypes.slice(i * 6, i * 6 + 6),
+		);
+		return (
+			len > 0 && (
+				<div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+					<span style={{ fontSize: "12px", color, marginRight: "8px" }}>[{text}]</span>
+					<div style={{ display: "flex", flexDirection: "column", gap: "4px", alignItems: "center" }}>
+						{render.map((weakTypes, i) => (
+							<div key={i} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+								{weakTypes.map((t) => (
+									<Tooltip key={t} content={TYPE_INFO[t].ko}>
+										<div key={t} className="type-circle" style={{ background: TYPE_INFO[t].color }}>
+											<img key={t} src={`/icons/${t}.svg`} />
+										</div>
+									</Tooltip>
+								))}
+							</div>
+						))}
+					</div>
+				</div>
+			)
+		);
+	};
+
 	return (
 		<div className="app-container">
 			{/* 최상단 네비게이션 헤더 */}
@@ -442,278 +482,285 @@ export default function App() {
 					</div>
 
 					{/* 중앙 전투 스테이지 (좌우 레이아웃 분리) */}
-					<div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", padding: "15px" }}>
-						{/* 적 정보 (위쪽) */}
+					<div
+						style={{
+							position: "relative",
+							display: "flex",
+							flexDirection: "column",
+							flex: 1,
+						}}
+					>
+						<AnimatedGridBackground lineColor="rgba(56, 189, 248, 0.1)" targetFps={30} blinkProbability={0.3} />
 						<div
-							id="enemy-info"
-							style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}
+							style={{
+								position: "relative",
+								display: "flex",
+								flex: 1,
+								flexDirection: "column",
+								padding: "15px",
+								justifyContent: "space-between",
+							}}
 						>
-							{activeEnemy ? (
-								<>
-									<div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-										<div style={{ fontSize: "20px", marginBottom: "4px" }}>{activeEnemy.name}</div>
-										<div style={{ fontSize: "12px", color: "#b4b9c2", marginBottom: "8px" }}>
-											⚡종족값 스피드: <span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeEnemy.speed}</span>
-										</div>
+							{/* 적 정보 (위쪽) */}
+							<div id="enemy-info" style={{ display: "flex", justifyContent: "space-between" }}>
+								{activeEnemy ? (
+									<>
+										<div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+											<div style={{ fontSize: "20px", marginBottom: "4px" }}>{activeEnemy.name}</div>
+											<div style={{ fontSize: "12px", color: "#b4b9c2", marginBottom: "8px" }}>
+												⚡종족값 스피드: <span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeEnemy.speed}</span>
+											</div>
 
-										{/* 상성 & 요주의 특성 묶음 */}
+											{/* 상성 & 요주의 특성 묶음 */}
+											<div
+												style={{
+													display: "flex",
+													flexDirection: "column",
+													gap: "4px",
+													width: "fit-content",
+												}}
+											>
+												{(() => {
+													const weak = getEnemyWeaknesses(activeEnemy.types);
+													if (
+														!weak.x4.length &&
+														!weak.x2.length &&
+														!weak.x0.length &&
+														!weak["x0.5"].length &&
+														!weak["x0.25"].length
+													)
+														return null;
+													return (
+														<div
+															style={{
+																background: "rgba(0,0,0,0.3)",
+																maxWidth: "240px",
+																padding: "6px",
+																borderRadius: "6px",
+																display: "flex",
+																flexDirection: "column",
+																gap: "4px",
+																paddingInline: "16px",
+															}}
+														>
+															{createWeakTypeIconList(weak.x4, "#fca5a5", "x4")}
+															{createWeakTypeIconList(weak.x2, "#fdba74", "x2")}
+															{createWeakTypeIconList(weak.x0, "#9ca3af", "x0")}
+															{createWeakTypeIconList(weak["x0.5"], "#60A5FA", "x0.5")}
+															{createWeakTypeIconList(weak["x0.25"], "#2652ca", "x0.25")}
+														</div>
+													);
+												})()}
+												{activeEnemy.abilities
+													.filter((a) => DANGER_ABILITIES[a.name])
+													.map((a, i) => (
+														<div
+															key={i}
+															style={{
+																color: "#fca5a5",
+																fontSize: "12px",
+																background: "rgba(220,38,38,0.2)",
+																padding: "4px",
+																borderRadius: "4px",
+															}}
+														>
+															[특성] {a.name}: {DANGER_ABILITIES[a.name]}
+														</div>
+													))}
+											</div>
+										</div>
 										<div
 											style={{
 												display: "flex",
 												flexDirection: "column",
-												gap: "4px",
-												width: "fit-content",
+												alignItems: "center",
+												width: "120px",
+												transform: "translateX(-12px)",
+												marginTop: "12px",
 											}}
 										>
-											{(() => {
-												const weak = getEnemyWeaknesses(activeEnemy.types);
-												if (!weak.x4.length && !weak.x2.length && !weak.x0.length) return null;
-												return (
-													<div
-														style={{
-															background: "rgba(0,0,0,0.3)",
-															padding: "6px",
-															borderRadius: "6px",
-															display: "flex",
-															flexDirection: "column",
-															gap: "4px",
-															paddingInline: "16px",
-														}}
-													>
-														{weak.x4.length > 0 && (
-															<div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-																<span style={{ fontSize: "12px", color: "#fca5a5", marginRight: "8px" }}>[x4]</span>
-																{weak.x4.map((t) => (
-																	<Tooltip key={t} content={TYPE_INFO[t].ko}>
-																		<div key={t} className="type-circle" style={{ background: TYPE_INFO[t].color }}>
-																			<img key={t} src={`/icons/${t}.svg`} />
-																		</div>
-																	</Tooltip>
-																))}
-															</div>
-														)}
-														{weak.x2.length > 0 && (
-															<div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-																<span style={{ fontSize: "12px", color: "#fdba74", marginRight: "8px" }}>[x2]</span>
-																{weak.x2.map((t) => (
-																	<Tooltip key={t} content={TYPE_INFO[t].ko}>
-																		<div key={t} className="type-circle" style={{ background: TYPE_INFO[t].color }}>
-																			<img key={t} src={`/icons/${t}.svg`} />
-																		</div>
-																	</Tooltip>
-																))}
-															</div>
-														)}
-														{weak.x0.length > 0 && (
-															<div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-																<span style={{ fontSize: "12px", color: "#9ca3af", marginRight: "8px" }}>[x0]</span>
-																{weak.x0.map((t) => (
-																	<Tooltip key={t} content={TYPE_INFO[t].ko}>
-																		<div key={t} className="type-circle" style={{ background: TYPE_INFO[t].color }}>
-																			<img key={t} src={`/icons/${t}.svg`} />
-																		</div>
-																	</Tooltip>
-																))}
-															</div>
-														)}
-													</div>
-												);
-											})()}
-											{activeEnemy.abilities
-												.filter((a) => DANGER_ABILITIES[a.name])
-												.map((a, i) => (
-													<div
-														key={i}
-														style={{
-															color: "#fca5a5",
-															fontSize: "12px",
-															background: "rgba(220,38,38,0.2)",
-															padding: "4px",
-															borderRadius: "4px",
-														}}
-													>
-														[특성] {a.name}: {DANGER_ABILITIES[a.name]}
-													</div>
-												))}
+											<img src={getImageUrl(activeEnemy)} className="stage-sprite sprite" />
+											<div className="mc-floor"></div>
 										</div>
-									</div>
-									<div
-										style={{
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-											width: "120px",
-											transform: "translateX(-12px)",
-										}}
-									>
-										<img src={getImageUrl(activeEnemy)} className="stage-sprite sprite" />
-										<div className="mc-floor"></div>
-									</div>
-								</>
-							) : (
-								<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>적군 포켓몬을 선택해주세요</div>
-							)}
-						</div>
+									</>
+								) : (
+									<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>적군 포켓몬을 선택해주세요</div>
+								)}
+							</div>
 
-						<div
-							style={{
-								position: "absolute",
-								left: "0",
-								top: "50%",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								width: "100%",
-								height: 0,
-								overflow: "visible",
-							}}
-						>
+							{/* VS 배경 텍스트 */}
 							<div
 								style={{
-									textAlign: "center",
-									fontSize: "40px",
-									fontWeight: "900",
-									fontStyle: "italic",
-									opacity: 0.2,
-									margin: "10px 0",
-									zIndex: -1,
+									position: "absolute",
+									left: "0",
+									top: "50%",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									width: "100%",
+									height: 0,
+									overflow: "visible",
 								}}
 							>
-								VS
+								<div
+									style={{
+										textAlign: "center",
+										fontSize: "40px",
+										fontWeight: "900",
+										fontStyle: "italic",
+										opacity: 0.2,
+										margin: "10px 0",
+									}}
+								>
+									VS
+								</div>
+							</div>
+
+							{/* 아군 정보 (아래쪽) */}
+							<div id="ally-info" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+								{activeAlly ? (
+									<>
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+												width: "120px",
+												transform: "translateX(12px)",
+											}}
+										>
+											<img src={getImageUrl(activeAlly)} className="stage-sprite sprite" />
+											<div className="mc-floor"></div>
+										</div>
+										<div style={{ flex: 1, textAlign: "right" }}>
+											<div style={{ fontSize: "20px", color: "#fbbf24", marginBottom: "4px" }}>{activeAlly.name}</div>
+											<div style={{ fontSize: "12px", color: "#b4b9c2", marginTop: "4px" }}>
+												🛡️속성:
+												{activeAlly.types.map((type, index) => (
+													<React.Fragment key={index}>
+														{index > 0 ? <span> / </span> : null}
+														<span style={{ fontSize: "14px", color: TYPE_INFO[type].color }}>{TYPE_INFO[type].ko}</span>
+													</React.Fragment>
+												))}
+											</div>
+											<div style={{ fontSize: "12px", color: "#b4b9c2", marginTop: "4px" }}>
+												⚡종족값 스피드: <span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeAlly.speed}</span>
+											</div>
+											<div style={{ fontSize: "12px", color: "#878c96", marginTop: "4px" }}>
+												특성 (참고용): {activeAlly.abilities.map((a) => a.name).join(", ")}
+											</div>
+										</div>
+									</>
+								) : (
+									<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>아군 포켓몬을 선택해주세요</div>
+								)}
 							</div>
 						</div>
 
-						{/* 아군 정보 (아래쪽) */}
 						<div
-							id="ally-info"
-							style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "auto" }}
+							id="move-container"
+							style={{
+								minHeight: "116px",
+								padding: "10px",
+								background: "#1f2937",
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr",
+								gap: "8px",
+							}}
 						>
-							{activeAlly ? (
-								<>
+							{(activeAlly?.moves || Array(4).fill(null)).map((move, i) => {
+								const mult = activeEnemy && move ? getMultiplier(move.type, activeEnemy.types) : 1;
+								let badgeColor = "#4b5563";
+								let badgeText = `x${mult}`;
+
+								if (mult === 4) {
+									badgeColor = "#dc2626";
+									badgeText = "x4";
+								} else if (mult === 2) {
+									badgeColor = "#ea580c";
+									badgeText = "x2";
+								} else if (mult === 0) {
+									badgeColor = "#111827";
+									badgeText = "x0";
+								} else if (mult === 0.5) {
+									badgeColor = "#636363";
+									badgeText = "x0.5";
+								} else if (mult === 0.25) {
+									badgeColor = "#333333";
+									badgeText = "x0.25";
+								}
+
+								return (
 									<div
+										key={i}
+										id={move?.id === "thunderbolt" ? `move-available_${move.id}` : undefined}
+										className="move-btn"
+										onClick={() => {
+											// activeAlly가 없을 때는 클릭 이벤트를 무시합니다.
+											if (!activeAlly) return;
+
+											if (isTutorialActive && guideStep === 8) return setGuideStep(9);
+											if (isTutorialActive && guideStep === 12) return;
+											setSearchConfig({ open: true, target: "move", moveSlotIdx: i });
+											if (isTutorialActive) {
+												if (guideStep === 5) setGuideStep(6);
+											}
+										}}
 										style={{
-											display: "flex",
-											flexDirection: "column",
-											alignItems: "center",
-											width: "120px",
-											transform: "translateX(12px)",
+											opacity: mult === 0 ? 0.4 : mult === 0.5 ? 0.8 : mult === 0.25 ? 0.6 : 1,
+											outline: mult === 4 ? "1px solid #dc2626" : mult === 2 ? "1px solid #ea580c" : undefined,
+											cursor: activeAlly ? "pointer" : "auto",
 										}}
 									>
-										<img src={getImageUrl(activeAlly)} className="stage-sprite sprite" />
-										<div className="mc-floor"></div>
+										{activeAlly ? (
+											move ? (
+												<>
+													<div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+														<Tooltip content={TYPE_INFO[move.type].ko}>
+															<div
+																className="type-circle"
+																style={{
+																	background: TYPE_INFO[move.type]?.color?.toLowerCase(),
+																	width: "22px",
+																	height: "22px",
+																}}
+															>
+																<img
+																	key={move.type}
+																	src={`/icons/${move.type}.svg`}
+																	style={{ width: "16px", height: "16px" }}
+																/>
+															</div>
+														</Tooltip>
+														<span style={{ color: "white", fontSize: "13px" }}>{move.name}</span>
+													</div>
+													{activeEnemy && (
+														<div
+															id={move?.id === "thunderbolt" ? `move-available-multi_${move.id}` : undefined}
+															style={{
+																background: badgeColor,
+																position: "absolute",
+																top: "-6px",
+																right: "-6px",
+																padding: "2px 6px",
+																fontSize: "12px",
+																borderRadius: "4px",
+																color: "white",
+															}}
+														>
+															{badgeText}
+														</div>
+													)}
+												</>
+											) : (
+												<span style={{ color: "#9ca3af", fontSize: "12px" }}>기술 선택</span>
+											)
+										) : null}
 									</div>
-									<div style={{ flex: 1, textAlign: "right" }}>
-										<div style={{ fontSize: "20px", color: "#fbbf24", marginBottom: "4px" }}>{activeAlly.name}</div>
-										<div style={{ fontSize: "12px", color: "#b4b9c2", marginTop: "4px" }}>
-											🛡️속성:
-											{activeAlly.types.map((type, index) => (
-												<React.Fragment key={index}>
-													{index > 0 ? <span> / </span> : null}
-													<span style={{ fontSize: "14px", color: TYPE_INFO[type].color }}>{TYPE_INFO[type].ko}</span>
-												</React.Fragment>
-											))}
-										</div>
-										<div style={{ fontSize: "12px", color: "#b4b9c2", marginTop: "4px" }}>
-											⚡종족값 스피드: <span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeAlly.speed}</span>
-										</div>
-										<div style={{ fontSize: "12px", color: "#878c96", marginTop: "4px" }}>
-											특성 (참고용): {activeAlly.abilities.map((a) => a.name).join(", ")}
-										</div>
-									</div>
-								</>
-							) : (
-								<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>아군 포켓몬을 선택해주세요</div>
-							)}
+								);
+							})}
 						</div>
 					</div>
-
-					<div
-						id="move-container"
-						style={{
-							padding: "10px",
-							background: "#1f2937",
-							display: "grid",
-							gridTemplateColumns: "1fr 1fr",
-							gap: "8px",
-						}}
-					>
-						{activeAlly?.moves.map((move, i) => {
-							const mult = activeEnemy && move ? getMultiplier(move.type, activeEnemy.types) : 1;
-							let badgeColor = "#4b5563";
-							let badgeText = `x${mult}`;
-							if (mult === 4) {
-								badgeColor = "#dc2626";
-								badgeText = "x4";
-							} else if (mult === 2) {
-								badgeColor = "#ea580c";
-								badgeText = "x2";
-							} else if (mult === 0) {
-								badgeColor = "#111827";
-								badgeText = "x0";
-							}
-
-							return (
-								<div
-									key={i}
-									id={move?.id === "thunderbolt" ? `move-available_${move.id}` : undefined}
-									className="move-btn"
-									onClick={() => {
-										if (isTutorialActive && guideStep === 8) return setGuideStep(9);
-										if (isTutorialActive && guideStep === 12) return;
-										setSearchConfig({ open: true, target: "move", moveSlotIdx: i });
-										if (isTutorialActive) {
-											if (guideStep === 5) setGuideStep(6);
-										}
-									}}
-									style={{ opacity: mult === 0 ? 0.4 : 1 }}
-								>
-									{move ? (
-										<>
-											<div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-												<Tooltip content={TYPE_INFO[move.type].ko}>
-													<div
-														className="type-circle"
-														style={{
-															background: TYPE_INFO[move.type]?.color?.toLowerCase(),
-															width: "22px",
-															height: "22px",
-														}}
-													>
-														<img
-															key={move.type}
-															src={`/icons/${move.type}.svg`}
-															style={{ width: "16px", height: "16px" }}
-														/>
-													</div>
-												</Tooltip>
-												<span style={{ color: "white", fontSize: "13px" }}>{move.name}</span>
-											</div>
-											{activeEnemy && (
-												<div
-													id={move?.id === "thunderbolt" ? `move-available-multi_${move.id}` : undefined}
-													style={{
-														background: badgeColor,
-														position: "absolute",
-														top: "-6px",
-														right: "-6px",
-														padding: "2px 6px",
-														fontSize: "12px",
-														borderRadius: "4px",
-														color: "white",
-													}}
-												>
-													{badgeText}
-												</div>
-											)}
-										</>
-									) : (
-										<span style={{ color: "#9ca3af", fontSize: "12px" }}>기술 선택</span>
-									)}
-								</div>
-							);
-						})}
-					</div>
-
 					<div id="plate-ally" className="plate-ally">
 						<div className="scroll-row ally">
 							{allies.map((ally, idx) => {

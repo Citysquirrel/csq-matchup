@@ -345,11 +345,19 @@ export const getMultiplier = (moveType: string, targetTypes: string[]): number =
 };
 
 export const getEnemyWeaknesses = (targetTypes: string[]) => {
-	const weaknesses = { x4: [] as string[], x2: [] as string[], x0: [] as string[] };
+	const weaknesses = {
+		x4: [] as string[],
+		x2: [] as string[],
+		"x0.5": [] as string[],
+		"x0.25": [] as string[],
+		x0: [] as string[],
+	};
 	Object.keys(TYPE_INFO).forEach((attackType) => {
 		const mult = getMultiplier(attackType, targetTypes);
 		if (mult === 4) weaknesses.x4.push(attackType);
 		else if (mult === 2) weaknesses.x2.push(attackType);
+		else if (mult === 0.5) weaknesses["x0.5"].push(attackType);
+		else if (mult === 0.25) weaknesses["x0.25"].push(attackType);
 		else if (mult === 0) weaknesses.x0.push(attackType);
 	});
 	return weaknesses;
