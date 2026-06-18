@@ -20,8 +20,13 @@ const dbMoves = MOVES_DATA as Move[];
 
 export default function App() {
 	const ITEMS_PER_PAGE = 50;
+	const TYPE_INDEX = 6;
 
 	const [view, setView] = useState<"battle" | "party">("battle");
+	const [enemyView, setEnemyView] = useState<"pokemon" | "type">(() => {
+		const saved = localStorage.getItem("csq-matchup_enemyView");
+		return saved ? JSON.parse(saved) : "pokemon";
+	});
 
 	const [allies, setAllies] = useState<(AllyPokemon | null)[]>(() => {
 		const saved = localStorage.getItem("csq-matchup_allies");
@@ -29,7 +34,7 @@ export default function App() {
 	});
 	const [enemies, setEnemies] = useState<(Pokemon | null)[]>(() => {
 		const saved = localStorage.getItem("csq-matchup_enemies");
-		return saved ? JSON.parse(saved) : [null];
+		return saved ? JSON.parse(saved) : Array(7).fill(null);
 	});
 	const [presets, setPresets] = useState<PartyPreset[]>(() => {
 		const saved = localStorage.getItem("csq-matchup_presets");
@@ -42,6 +47,10 @@ export default function App() {
 	});
 	const [enemyIdx, setEnemyIdx] = useState(() => {
 		const saved = localStorage.getItem("csq-matchup_enemyIdx");
+		return saved ? JSON.parse(saved) : 0;
+	});
+	const [tempEnemyIdx, setTempEnemyIdx] = useState(() => {
+		const saved = localStorage.getItem("csq-matchup_tempEnemyIdx");
 		return saved ? JSON.parse(saved) : 0;
 	});
 
@@ -61,6 +70,9 @@ export default function App() {
 
 	// 실시간 로컬스토리지 갱신 작업
 	useEffect(() => {
+		localStorage.setItem("csq-matchup_enemyView", JSON.stringify(enemyView));
+	}, [enemyView]);
+	useEffect(() => {
 		localStorage.setItem("csq-matchup_allies", JSON.stringify(allies));
 	}, [allies]);
 	useEffect(() => {
@@ -78,6 +90,9 @@ export default function App() {
 	useEffect(() => {
 		localStorage.setItem("csq-matchup_enemyIdx", JSON.stringify(enemyIdx));
 	}, [enemyIdx]);
+	useEffect(() => {
+		localStorage.setItem("csq-matchup_tempEnemyIdx", JSON.stringify(tempEnemyIdx));
+	}, [tempEnemyIdx]);
 
 	const activeAlly = allies[allyIdx];
 	const activeEnemy = enemies[enemyIdx];
@@ -169,7 +184,7 @@ export default function App() {
 			onNext() {
 				setPage(1);
 				setSearchQuery("갸라도스");
-				setAllyIdx(0);
+				setEnemyIdx(0);
 				setSearchConfig({ open: true, target: "enemy" });
 			},
 		},
@@ -258,8 +273,7 @@ export default function App() {
 			setAllies(newAllies);
 		} else {
 			const newEnemies = [...enemies];
-			newEnemies.splice(idx, 1);
-			if (newEnemies.length === 0 || newEnemies[newEnemies.length - 1] !== null) newEnemies.push(null);
+			newEnemies[idx] = null;
 			setEnemies(newEnemies);
 			if (enemyIdx >= newEnemies.length - 1) setEnemyIdx(0);
 		}
@@ -312,12 +326,48 @@ export default function App() {
 		setPage(1);
 	};
 
+	const handleEnemyView = () => {
+		setEnemyView((prev) => {
+			if (prev === "pokemon") {
+				const temp = enemyIdx;
+				setEnemyIdx(TYPE_INDEX);
+				setTempEnemyIdx(temp);
+				return "type";
+			} else {
+				const temp = tempEnemyIdx;
+				setEnemyIdx(temp);
+				setTempEnemyIdx(0);
+				return "pokemon";
+			}
+		});
+	};
+
+	const handleEnemyType = (key: string) => () => {
+		setEnemies((prev) => {
+			const temp = [...prev];
+			if (!temp[TYPE_INDEX]) temp[TYPE_INDEX] = { id: 999999, name: "속성", types: [], speed: -1, abilities: [] };
+			const types = [...temp[TYPE_INDEX].types];
+			const idx = types.findIndex((t) => t === key);
+			if (idx !== -1) {
+				types.splice(idx, 1);
+			} else {
+				if (types.length === 2) {
+					types.shift();
+				}
+				types.push(key);
+			}
+			temp[TYPE_INDEX].types = types;
+			return temp;
+		});
+	};
+
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") closeSearch();
 		};
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const getImageUrl = (pokemon: Pokemon) => {
@@ -418,6 +468,7 @@ export default function App() {
 						id="help-button"
 						onClick={() => {
 							setView("battle");
+							setEnemyView("pokemon");
 							setIsGuideActive(true);
 						}}
 						tabIndex={-1}
@@ -434,57 +485,96 @@ export default function App() {
 				{/* ======================= [화면 1] 배틀 메인 ======================= */}
 				<div className="screen">
 					<div id="plate-enemy" className="plate-enemy">
-						<div className="scroll-row">
-							{enemies.map((enemy, idx) => (
-								<div
-									key={idx}
-									className={`slot ${idx === enemyIdx && enemy ? "active" : ""}`}
-									onClick={() => {
-										if (!enemy) setSearchConfig({ open: true, target: "enemy" });
-										setEnemyIdx(idx);
-										if (isGuideActive && guideStep === 9 && !enemy) {
-											setGuideStep(10);
-											setSearchQuery("갸라도스");
-											setPage(1);
-										}
-									}}
-									style={{ gridTemplateRows: enemy ? "14px 1fr auto" : "auto" }}
-								>
-									{enemy ? (
-										<>
-											<div className="slot-del" onClick={(e) => handleRemove(e, "enemy", idx)}>
-												✖
-											</div>
-											<div className="slot-image-container">
-												<img src={getImageUrl(enemy)} className="pokemon-sprite sprite" />
-											</div>
-											<div className="type-icon-container">
-												{enemy.types.map((t) => (
-													<React.Fragment key={t}>
-														<div
-															className="type-icon"
-															style={{
-																background: `linear-gradient(180deg, ${TYPE_INFO[t]?.color}00 0%, ${TYPE_INFO[t]?.color} 55%`,
-															}}
-														>
-															<img key={t} src={`/icons/${t}.svg`} />
-														</div>
-													</React.Fragment>
-												))}
-											</div>
-										</>
-									) : (
-										<div style={{ margin: "auto", fontSize: "40px", color: "#95979d", fontFamily: "sans-serif" }}>
-											+
+						{enemyView === "type" ? (
+							<div
+								style={{
+									display: "flex",
+									width: "100%",
+									height: "100%",
+									alignItems: "center",
+									justifyContent: "center",
+								}}
+							>
+								<div className="enemy-type-grid">
+									{Object.entries(TYPE_INFO).map(([key, val]) => (
+										<div
+											className={`enemy-type-btn${enemies[6]?.types.includes(key) ? " active" : ""}`}
+											style={{
+												display: "flex",
+												alignItems: "center",
+												justifyContent: "center",
+												width: "36px",
+												height: "36px",
+												borderRadius: "4px",
+												backgroundColor: val.color,
+												cursor: "pointer",
+												boxShadow: "inset 0 0 0 1px hsl(0 0% 100% / 33%)",
+											}}
+											onClick={handleEnemyType(key)}
+										>
+											<img
+												key={key}
+												src={`/icons/${key}.svg`}
+												style={{ width: "24px", height: "24px", filter: `drop-shadow(0 0 4px black)` }}
+											/>
 										</div>
-									)}
+									))}
 								</div>
-							))}
-						</div>
+							</div>
+						) : (
+							<div className="scroll-row">
+								{enemies.slice(0, 6).map((enemy, idx) => (
+									<div
+										key={idx}
+										className={`slot ${idx === enemyIdx && enemy ? "active" : ""}`}
+										onClick={() => {
+											if (!enemy) setSearchConfig({ open: true, target: "enemy" });
+											setEnemyIdx(idx);
+											if (isGuideActive && guideStep === 9 && !enemy) {
+												setGuideStep(10);
+												setSearchQuery("갸라도스");
+												setPage(1);
+											}
+										}}
+										style={{ gridTemplateRows: enemy ? "14px 1fr auto" : "auto" }}
+									>
+										{enemy ? (
+											<>
+												<div className="slot-del" onClick={(e) => handleRemove(e, "enemy", idx)}>
+													✖
+												</div>
+												<div className="slot-image-container">
+													<img src={getImageUrl(enemy)} className="pokemon-sprite sprite" />
+												</div>
+												<div className="type-icon-container">
+													{enemy.types.map((t) => (
+														<React.Fragment key={t}>
+															<div
+																className="type-icon"
+																style={{
+																	background: `linear-gradient(180deg, ${TYPE_INFO[t]?.color}00 0%, ${TYPE_INFO[t]?.color} 55%`,
+																}}
+															>
+																<img key={t} src={`/icons/${t}.svg`} />
+															</div>
+														</React.Fragment>
+													))}
+												</div>
+											</>
+										) : (
+											<div style={{ margin: "auto", fontSize: "40px", color: "#95979d", fontFamily: "sans-serif" }}>
+												+
+											</div>
+										)}
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* 중앙 전투 스테이지 (좌우 레이아웃 분리) */}
 					<div
+						id="battle-stage-container"
 						style={{
 							position: "relative",
 							display: "flex",
@@ -493,6 +583,7 @@ export default function App() {
 						}}
 					>
 						<AnimatedGridBackground lineColor="rgba(56, 189, 248, 0.1)" targetFps={30} blinkProbability={0.3} />
+
 						<div
 							style={{
 								position: "relative",
@@ -503,15 +594,34 @@ export default function App() {
 								justifyContent: "space-between",
 							}}
 						>
+							<div id="battle-stage-btn-wrapper">
+								<Tooltip content="적 모드 변경" placement="right">
+									<div className="enemy-view-btn" onClick={handleEnemyView}>
+										{enemyView === "pokemon" ? "포켓몬" : "속성"}
+									</div>
+								</Tooltip>
+							</div>
 							{/* 적 정보 (위쪽) */}
 							<div id="enemy-info" style={{ display: "flex", justifyContent: "space-between" }}>
+								{enemyIdx === TYPE_INDEX && enemyView === "type" && enemies[TYPE_INDEX]?.types.length === 0 ? (
+									<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>적 타입을 선택해주세요</div>
+								) : null}
 								{activeEnemy ? (
 									<>
 										<div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-											<div style={{ fontSize: "20px", marginBottom: "4px" }}>{activeEnemy.name}</div>
-											<div style={{ fontSize: "12px", color: "#b4b9c2", marginBottom: "8px" }}>
-												⚡종족값 스피드: <span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeEnemy.speed}</span>
+											<div style={{ fontSize: "20px", marginBottom: enemyIdx === TYPE_INDEX ? "8px" : "4px" }}>
+												{enemyIdx === TYPE_INDEX
+													? activeEnemy.types.map((t) => (
+															<span style={{ color: TYPE_INFO[t].color }}>[{TYPE_INFO[t].ko}]</span>
+														))
+													: activeEnemy.name}
 											</div>
+											{enemyIdx === TYPE_INDEX ? null : (
+												<div style={{ fontSize: "12px", color: "#b4b9c2", marginBottom: "8px" }}>
+													⚡종족값 스피드:{" "}
+													<span style={{ fontSize: "14px", color: "#93d8bf" }}>{activeEnemy.speed}</span>
+												</div>
+											)}
 
 											{/* 상성 & 요주의 특성 묶음 */}
 											<div
@@ -571,19 +681,21 @@ export default function App() {
 													))}
 											</div>
 										</div>
-										<div
-											style={{
-												display: "flex",
-												flexDirection: "column",
-												alignItems: "center",
-												width: "120px",
-												transform: "translateX(-12px)",
-												marginTop: "12px",
-											}}
-										>
-											<img src={getImageUrl(activeEnemy)} className="stage-sprite sprite" />
-											<div className="mc-floor"></div>
-										</div>
+										{enemyIdx === TYPE_INDEX ? null : (
+											<div
+												style={{
+													display: "flex",
+													flexDirection: "column",
+													alignItems: "center",
+													width: "120px",
+													transform: "translateX(-12px)",
+													marginTop: "12px",
+												}}
+											>
+												<img src={getImageUrl(activeEnemy)} className="stage-sprite sprite" />
+												<div className="mc-floor"></div>
+											</div>
+										)}
 									</>
 								) : (
 									<div style={{ width: "100%", textAlign: "center", color: "#9ca3af" }}>적군 포켓몬을 선택해주세요</div>
@@ -911,6 +1023,7 @@ export default function App() {
 								// maxHeight: "600px",
 								paddingRight: "2px",
 							}}
+							tabIndex={-1}
 						>
 							{presets.length === 0 && (
 								<div style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>저장된 프리셋이 없습니다.</div>
@@ -955,6 +1068,7 @@ export default function App() {
 													borderRadius: "4px",
 													cursor: "pointer",
 												}}
+												tabIndex={-1}
 											>
 												불러오기
 											</button>
@@ -971,6 +1085,7 @@ export default function App() {
 													borderRadius: "4px",
 													cursor: "pointer",
 												}}
+												tabIndex={-1}
 											>
 												삭제
 											</button>
@@ -1024,7 +1139,12 @@ export default function App() {
 
 						{/* 소스코드 링크 */}
 						<div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
-							<a className="github-link" href="https://github.com/Citysquirrel/csq-matchup" target="_blank">
+							<a
+								className="github-link"
+								href="https://github.com/Citysquirrel/csq-matchup"
+								target="_blank"
+								tabIndex={-1}
+							>
 								<div className="github-icon" />
 								<span style={{ fontSize: "12px" }}>source</span>
 							</a>

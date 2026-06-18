@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 
+/**
+ * @description 튜토리얼 가이드의 개별 단계를 정의하는 인터페이스
+ *
+ * @property {string} [targetId] - 하이라이트할 대상 DOM 요소의 HTML `id` (생략 시 특정 요소 대신 화면 중앙에 안내만 표시)
+ * @property {string} text - 안내 말풍선(Tooltip)에 표시될 가이드 설명 문구
+ * @property {() => void} [onNext] - '다음' 버튼을 눌러 다음 단계로 넘어가기 직전에 실행할 추가 커스텀 콜백 함수
+ * @property {() => void} [onPrev] - '이전' 버튼을 눌러 이전 단계로 돌아가기 직전에 실행할 추가 커스텀 콜백 함수
+ * @property {boolean} [hideNextButton] - '다음' 버튼을 숨길지 여부 (예: 유저가 검색창에 글자를 치는 등 직접 미션을 수행해야만 다음으로 넘어가는 단계일 때 사용)
+ */
 export interface GuideStep {
 	targetId?: string;
 	text: string;
@@ -16,6 +25,14 @@ interface SpotlightProps {
 	onClose: () => void;
 }
 
+/**
+ * @description 지정된 `targetId` 요소를 어두운 레이어 위로 밝게 하이라이트하고, 단계별 가이드 말풍선을 제공하는 튜토리얼 스포트라이트 컴포넌트입니다.
+ * @property {boolean} isActive - 활성화 여부 (false일 경우 컴포넌트가 렌더링되지 않음)
+ * @property {GuideStep[]} steps - 튜토리얼을 구성하는 모든 단계의 데이터 배열
+ * @property {number} currentStep - 현재 진행 중인 가이드 단계의 인덱스 번호 (0부터 시작)
+ * @property {(step: number) => void} onStepChange - **setCurrentStep을 넣어주세요!** '이전/다음' 이동이나 특정 이벤트를 통해 가이드 단계(Index)를 변경할 때 호출되는 상태 제어 함수
+ * @property {() => void} onClose - 튜토리얼 도중 '건너뛰기'를 누르거나, 마지막 단계에서 가이드를 완전히 종료할 때 호출되는 함수
+ */
 export default function Spotlight({ isActive, steps, currentStep, onStepChange, onClose }: SpotlightProps) {
 	const [rect, setRect] = useState<DOMRect | null>(null);
 	const [tooltipHeight, setTooltipHeight] = useState(150);

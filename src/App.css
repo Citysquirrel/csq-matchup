@@ -53,6 +53,7 @@ body {
 }
 
 .plate-enemy {
+	min-height: 118px;
 	background: linear-gradient(180deg, #2a1111 0%, #171717 100%);
 	border-bottom: 2px solid #5a1e1e;
 	padding: 8px;
@@ -70,6 +71,23 @@ body {
 	overflow-x: auto;
 	min-height: 100px;
 	justify-content: center;
+}
+.enemy-type-grid {
+	display: grid;
+	grid-template-columns: repeat(9, 40px);
+	grid-template-rows: repeat(2, 40px);
+	align-self: center;
+	justify-self: center;
+	place-items: center;
+	gap: 2px;
+}
+
+.enemy-type-btn.active {
+	/* outline: 2px solid rgb(255, 255, 255); */
+	filter: invert(1);
+}
+.enemy-type-btn:hover {
+	outline: 1px solid rgb(83, 255, 83);
 }
 
 .slot {
@@ -236,11 +254,9 @@ body {
 @keyframes fadeIn {
 	from {
 		opacity: 0;
-		transform: translate(-50%, 0px);
 	}
 	to {
 		opacity: 1;
-		transform: translate(-50%, -6px);
 	}
 }
 
@@ -323,5 +339,27 @@ body {
 
 #search-input::placeholder {
 	color: #b6b6b6;
+}
+
+#battle-stage-btn-wrapper {
+	position: absolute;
+	display: flex;
+	left: 0px;
+	top: 0px;
+}
+
+.enemy-view-btn {
+	font-size: 14px;
+	padding: 2px 4px;
+	border: 2px solid #5a1e1e;
+	border-top: none;
+	border-left: none;
+	border-radius: 0 0 8px 0;
+	background-color: #7b3131;
+	cursor: pointer;
+}
+
+.enemy-view-btn:hover {
+	background-color: #9d4d4d;
 }
 
